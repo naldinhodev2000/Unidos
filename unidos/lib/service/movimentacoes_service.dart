@@ -1,5 +1,5 @@
 import 'package:unidos/db/database.dart';
-import 'package:unidos/eentityu/movimentacao%20.dart';
+import 'package:unidos/entity/movimentacao.dart';
 
 class MovimentacaoService {
   Future<void> add(Movimentacao movimentacao) async {
