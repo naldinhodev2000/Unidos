@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:unidos/entity/movimentacao.dart';
 import 'package:unidos/entity/centro_custo.dart';
 import 'package:unidos/service/centro_custo_service.dart';
 import 'package:unidos/service/movimentacoes_service.dart';
-import 'package:unidos/telas/cadastro_centro_tela.dart';
 import 'package:unidos/telas/cadastro_movimentacao_tela.dart';
+import 'package:unidos/telas/movimentacoes_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,105 +30,95 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> carregarDados() async {
-    final centrosCusto =
-        await centroCustoService.listAll();
+    final centrosCusto = await centroCustoService.listAll();
 
-    final todasMovimentacoes =
-        await movimentacaoService.listAll();
+    final todasMovimentacoes = await movimentacaoService.listAll();
 
-    // Por enquanto, o ID 1 representa o Meu Caixa
-    final saldoMeuCaixa =
-        await movimentacaoService
-            .getSaldoCentroCusto(1);
+    final saldoMeuCaixa = await movimentacaoService.getSaldoCentroCusto(1);
 
-    final saldoTotal =
-        await movimentacaoService
-            .getSaldoTotal();
+    final saldoTotal = await movimentacaoService.getSaldoTotal();
 
     if (!mounted) return;
 
     setState(() {
       centros = centrosCusto;
 
-      movimentacoes =
-          todasMovimentacoes
-              .reversed
-              .take(3)
-              .toList();
+      movimentacoes = todasMovimentacoes.reversed.take(3).toList();
 
       meuCaixa = saldoMeuCaixa;
       totalGeral = saldoTotal;
     });
   }
 
-  // Abre cadastro de movimentação
   Future<void> abrirCadastroMovimentacao() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const CadastroMovimentacaoPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const CadastroMovimentacaoPage()),
     );
 
     await carregarDados();
   }
 
-  // Abre cadastro de centro de custo
-  Future<void> abrirCadastroCentroCusto() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const CadastroCentroCustoPage(),
-      ),
+  Future<void> mostrarOpcoesMovimentacao(Movimentacao movimentacao) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Excluir movimentação?'),
+          content: Text('Deseja excluir "${movimentacao.descricao}"?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
-    await carregarDados();
+    if (confirmar == true && movimentacao.id != null) {
+      await movimentacaoService.delete(movimentacao.id!);
+
+      await carregarDados();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalComunidades =
-        totalGeral - meuCaixa;
+    final totalComunidades = totalGeral - meuCaixa;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFF101827),
+      backgroundColor: const Color(0xFF101827),
 
       appBar: AppBar(
-        backgroundColor:
-            const Color(0xFF101827),
+        backgroundColor: const Color(0xFF101827),
+
         elevation: 0,
 
         title: const Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Olá, Naldinho!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight:
-                    FontWeight.bold,
-              ),
+              'Olá, Secretário!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text(
-              'Gerencie os caixas',
-              style: TextStyle(
-                fontSize: 16,
-              ),
-            ),
+            Text('Gerencie os caixas', style: TextStyle(fontSize: 16)),
           ],
         ),
 
         actions: [
-          IconButton(
-            onPressed: carregarDados,
-            icon: const Icon(
-              Icons.refresh,
-            ),
-          ),
+          IconButton(onPressed: carregarDados, icon: const Icon(Icons.refresh)),
         ],
       ),
 
@@ -137,30 +126,17 @@ class _HomePageState extends State<HomePage> {
         onRefresh: carregarDados,
 
         child: ListView(
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
 
           children: [
-            const SizedBox(
-              height: 10,
-            ),
-
-            // =========================
-            // RESUMO
-            // =========================
+            const SizedBox(height: 10),
 
             const Text(
               'Resumo',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight:
-                    FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(
-              height: 16,
-            ),
+            const SizedBox(height: 16),
 
             Row(
               children: [
@@ -168,136 +144,66 @@ class _HomePageState extends State<HomePage> {
                   child: _CardResumo(
                     titulo: 'Meu Caixa',
                     valor: meuCaixa,
-                    subtitulo:
-                        'Saldo atual',
-                    icon: Icons
-                        .account_balance_wallet,
+                    subtitulo: 'Saldo atual',
+                    icon: Icons.account_balance_wallet,
                   ),
                 ),
 
-                const SizedBox(
-                  width: 12,
-                ),
+                const SizedBox(width: 12),
 
                 Expanded(
                   child: _CardResumo(
-                    titulo:
-                        'Total Comunidades',
-                    valor:
-                        totalComunidades,
-                    subtitulo:
-                        'Saldo combinado',
-                    icon:
-                        Icons.groups,
+                    titulo: 'Total Comunidades',
+                    valor: totalComunidades,
+                    subtitulo: 'Saldo combinado',
+                    icon: Icons.groups,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(
-              height: 12,
-            ),
+            const SizedBox(height: 12),
 
             _CardResumo(
               titulo: 'Total Geral',
               valor: totalGeral,
-              subtitulo:
-                  'Todos os caixas',
-              icon:
-                  Icons.account_balance,
+              subtitulo: 'Todos os caixas',
+              icon: Icons.account_balance,
             ),
 
-            const SizedBox(
-              height: 28,
+            const SizedBox(height: 28),
+
+            const Text(
+              'Comunidades',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
-            // =========================
-            // COMUNIDADES
-            // =========================
-
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment
-                      .spaceBetween,
-
-              children: [
-                const Text(
-                  'Comunidades',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-
-                IconButton(
-                  onPressed:
-                      abrirCadastroCentroCusto,
-
-                  icon: const Icon(
-                    Icons.add,
-                    color:
-                        Colors.greenAccent,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(
-              height: 12,
-            ),
+            const SizedBox(height: 12),
 
             ...centros
-                .where(
-                  (centro) =>
-                      centro.id != 1,
-                )
+                .where((centro) => centro.id != 1)
                 .map(
-                  (centro) =>
-                      FutureBuilder<double>(
-                    future:
-                        movimentacaoService
-                            .getSaldoCentroCusto(
-                      centro.id!,
-                    ),
+                  (centro) => FutureBuilder<double>(
+                    future: movimentacaoService.getSaldoCentroCusto(centro.id!),
 
-                    builder:
-                        (context, snapshot) {
-                      final saldo =
-                          snapshot.data ??
-                              0;
+                    builder: (context, snapshot) {
+                      final saldo = snapshot.data ?? 0;
 
                       return Card(
-                        color:
-                            const Color(
-                                0xFF293344),
+                        color: const Color(0xFF293344),
 
-                        child:
-                            ListTile(
-                          leading:
-                              const CircleAvatar(
-                            child: Icon(
-                              Icons.church,
-                            ),
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.church),
                           ),
 
-                          title:
-                              Text(
-                            centro.nome,
-                          ),
+                          title: Text(centro.nome),
 
-                          trailing:
-                              Text(
+                          trailing: Text(
                             'R\$ ${saldo.toStringAsFixed(2)}',
-
-                            style:
-                                const TextStyle(
-                              color:
-                                  Colors
-                                      .greenAccent,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
+                            style: const TextStyle(
+                              color: Colors.greenAccent,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -306,165 +212,97 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-            const SizedBox(
-              height: 28,
-            ),
-
-            // =========================
-            // MOVIMENTAÇÕES
-            // =========================
+            const SizedBox(height: 28),
 
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment
-                      .spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
               children: [
                 const Text(
                   'Últimas movimentações',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
 
                 TextButton(
-                  onPressed: () {},
-                  child:
-                      const Text(
-                    'Ver todas',
-                  ),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MovimentacoesPage(),
+                      ),
+                    );
+
+                    carregarDados();
+                  },
+                  child: const Text('Ver todas'),
                 ),
               ],
             ),
 
-            const SizedBox(
-              height: 8,
-            ),
+            const SizedBox(height: 8),
 
             ...movimentacoes.map(
-              (movimentacao) =>
-                  Card(
-                color:
-                    const Color(
-                        0xFF293344),
+              (movimentacao) => GestureDetector(
+                onLongPress: () {
+                  mostrarOpcoesMovimentacao(movimentacao);
+                },
 
-                child: ListTile(
-                  leading:
-                      CircleAvatar(
-                    backgroundColor:
-                        movimentacao
-                                    .tipo ==
-                                'ENTRADA'
-                            ? Colors.green
-                            : Colors.red,
+                child: Card(
+                  color: const Color(0xFF293344),
 
-                    child: Icon(
-                      movimentacao
-                                  .tipo ==
-                              'ENTRADA'
-                          ? Icons
-                              .arrow_downward
-                          : Icons
-                              .arrow_upward,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: movimentacao.tipo == 'ENTRADA'
+                          ? Colors.green
+                          : Colors.red,
+
+                      child: Icon(
+                        movimentacao.tipo == 'ENTRADA'
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                      ),
                     ),
-                  ),
 
-                  title: Text(
-                    movimentacao
-                        .descricao,
-                  ),
+                    title: Text(movimentacao.descricao),
 
-                  subtitle: Text(
-                    movimentacao.tipo,
-                  ),
+                    subtitle: Text(movimentacao.tipo),
 
-                  trailing:
-                      Text(
-                    '${movimentacao.tipo == 'ENTRADA' ? '+' : '-'} '
-                    'R\$ ${movimentacao.valor.toStringAsFixed(2)}',
+                    trailing: Text(
+                      '${movimentacao.tipo == 'ENTRADA' ? '+' : '-'} '
+                      'R\$ ${movimentacao.valor.toStringAsFixed(2)}',
 
-                    style:
-                        TextStyle(
-                      color: movimentacao
-                                  .tipo ==
-                              'ENTRADA'
-                          ? Colors
-                              .greenAccent
-                          : Colors
-                              .redAccent,
+                      style: TextStyle(
+                        color: movimentacao.tipo == 'ENTRADA'
+                            ? Colors.greenAccent
+                            : Colors.redAccent,
 
-                      fontWeight:
-                          FontWeight
-                              .bold,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(
-              height: 100,
-            ),
+            const SizedBox(height: 100),
           ],
         ),
       ),
 
-      // =========================
-      // BOTÃO NOVA MOVIMENTAÇÃO
-      // =========================
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.greenAccent,
 
-      floatingActionButton:
-          FloatingActionButton(
-        backgroundColor:
-            Colors.greenAccent,
+        foregroundColor: const Color(0xFF101827),
 
-        foregroundColor:
-            const Color(0xFF101827),
+        onPressed: abrirCadastroMovimentacao,
 
-        onPressed:
-            abrirCadastroMovimentacao,
-
-        child: const Icon(
-          Icons.add,
-        ),
-      ),
-
-      // =========================
-      // MENU INFERIOR
-      // =========================
-
-      bottomNavigationBar:
-          BottomNavigationBar(
-        currentIndex: 0,
-
-        items: const [
-          BottomNavigationBarItem(
-            icon:
-                Icon(Icons.home),
-            label: 'Início',
-          ),
-
-          BottomNavigationBarItem(
-            icon:
-                Icon(Icons.groups),
-            label: 'Comunidades',
-          ),
-
-          BottomNavigationBarItem(
-            icon:
-                Icon(Icons.bar_chart),
-            label: 'Relatórios',
-          ),
-        ],
+        child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class _CardResumo
-    extends StatelessWidget {
+class _CardResumo extends StatelessWidget {
   final String titulo;
   final double valor;
   final String subtitulo;
@@ -478,68 +316,33 @@ class _CardResumo
   });
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return Card(
-      color:
-          const Color(0xFF293344),
+      color: const Color(0xFF293344),
 
       child: Padding(
-        padding:
-            const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
 
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment
-                  .start,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
-            Icon(
-              icon,
-              color:
-                  Colors.greenAccent,
-              size: 32,
-            ),
+            Icon(icon, color: Colors.greenAccent, size: 32),
 
-            const SizedBox(
-              height: 8,
-            ),
+            const SizedBox(height: 8),
 
-            Text(
-              titulo,
-              style:
-                  const TextStyle(
-                fontSize: 16,
-              ),
-            ),
+            Text(titulo, style: const TextStyle(fontSize: 16)),
 
-            const SizedBox(
-              height: 4,
-            ),
+            const SizedBox(height: 4),
 
             Text(
               'R\$ ${valor.toStringAsFixed(2)}',
-
-              style:
-                  const TextStyle(
-                fontSize: 20,
-                fontWeight:
-                    FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(
-              height: 4,
-            ),
+            const SizedBox(height: 4),
 
-            Text(
-              subtitulo,
-
-              style:
-                  const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
+            Text(subtitulo, style: const TextStyle(color: Colors.grey)),
           ],
         ),
       ),

@@ -1,16 +1,16 @@
+
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:unidos/telas/home_page.dart';
+import 'package:unidos/telas/main_page.dart';
 
 void main() {
-  if (!kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.linux ||
-          defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.macOS)) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializa o SQLite para Linux/Desktop
+  sqfliteFfiInit();
+
+  // Diz ao sqflite para usar a implementação FFI
+  databaseFactory = databaseFactoryFfi;
 
   runApp(const UnidosApp());
 }
@@ -23,8 +23,11 @@ class UnidosApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Unidos',
-      theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
-      home: const HomePage(),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+      ),
+      home: const MainPage(),
     );
   }
 }

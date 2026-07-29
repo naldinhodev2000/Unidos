@@ -1,3 +1,4 @@
+
 import 'package:unidos/db/database.dart';
 import 'package:unidos/entity/movimentacao.dart';
 
@@ -59,8 +60,11 @@ class MovimentacaoService {
   }
 
   // Saldo de um centro de custo
-  Future<double> getSaldoCentroCusto(int centroCustoId) async {
-    final movimentacoes = await listByCentroCusto(centroCustoId);
+  Future<double> getSaldoCentroCusto(
+    int centroCustoId,
+  ) async {
+    final movimentacoes =
+        await listByCentroCusto(centroCustoId);
 
     double saldo = 0;
 
@@ -90,5 +94,30 @@ class MovimentacaoService {
     }
 
     return saldo;
+  }
+
+  // Resumo financeiro de um centro de custo
+  Future<Map<String, double>> getResumoCentroCusto(
+    int centroCustoId,
+  ) async {
+    final movimentacoes =
+        await listByCentroCusto(centroCustoId);
+
+    double entradas = 0;
+    double saidas = 0;
+
+    for (final movimentacao in movimentacoes) {
+      if (movimentacao.tipo == 'ENTRADA') {
+        entradas += movimentacao.valor;
+      } else if (movimentacao.tipo == 'SAIDA') {
+        saidas += movimentacao.valor;
+      }
+    }
+
+    return {
+      'entradas': entradas,
+      'saidas': saidas,
+      'saldo': entradas - saidas,
+    };
   }
 }
